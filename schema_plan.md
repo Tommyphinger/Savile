@@ -11,7 +11,127 @@
 * **Asset-Driven Filtering:** The database only manages system assets (wallpapers and widgets). Matching happens locally on-device or via ephemeral, client-side preference hashing through the Python data engine.
 * **Stateless API:** The backend acts as a pure content delivery layer — no sessions, no auth tokens, no user tracking.
 
-> **Note:** As per Odytom's rules, strictly NO MongoDB. We are using PostgreSQL (recommended) containerized via Docker.
+> **Note:** As per Odytom's rules, strictly NO MongoDB. We are using PostgreSQL containerized via Docker.
+
+---
+
+## 1.5 System Architecture & UML Diagrams
+
+### System Architecture Overview
+
+```mermaid
+graph TD
+    subgraph iOS_Client ["iOS Client App (React Native / Native)"]
+        UI["App Interface"]
+        LocalDB[("Local Storage (CoreData / SQLite)\n[Stores User Preferences & Custom Layouts]")]
+        E2EE["E2EE Engine & Preference Matcher"]
+    end
+
+    subgraph Backend_Cloud ["Backend Infrastructure (Dockerized)"]
+        API["REST API (Express / Laravel)\n[Stateless Content Delivery]"]
+        DB[("PostgreSQL Database\n[Public Catalog Only: Wallpapers, Widgets, Tags, Colors]")]
+        CDN["CDN / Asset Storage\n[Full-Res Wallpapers & Preview Images]"]
+    end
+
+    subgraph Data_Engine ["Data Engine (Python)"]
+        PyScript["Python Preference Matcher\n(Sheriff & Yazn)"]
+    end
+
+    UI <--> LocalDB
+    LocalDB --> E2EE
+    API <-->|Fetch Tagged Assets| DB
+    E2EE <-->|Fetch Public Catalog| API
+    API -->|Fetch Image Files| CDN
+    PyScript -.->|Ephemeral Matching Helper| E2EE
+```
+
+### Entity-Relationship Diagram (ERD)
+
+```mermaid
+erDiagram
+    wallpapers ||--o{ wallpaper_tags : has
+    tags ||--o{ wallpaper_tags : applied_to
+    wallpapers ||--o{ wallpaper_colors : has
+    colors ||--o{ wallpaper_colors : applied_to
+    widgets ||--o{ widget_tags : has
+    tags ||--o{ widget_tags : applied_to
+    collections ||--o{ collection_items : contains
+    wallpapers ||--o{ collection_items : belongs_to
+
+    wallpapers {
+        uuid id PK
+        varchar asset_url
+        varchar thumbnail_url
+        varchar aspect_ratio
+        int width_px
+        int height_px
+        boolean is_active
+        int sort_order
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    widgets {
+        uuid id PK
+        varchar name
+        varchar widget_type
+        varchar preview_url
+        jsonb config_template
+        boolean is_active
+        int sort_order
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    tags {
+        serial id PK
+        varchar slug UK
+        varchar label
+        varchar category
+    }
+
+    colors {
+        serial id PK
+        varchar hex_code UK
+        varchar name
+        varchar warmth
+    }
+
+    collections {
+        uuid id PK
+        varchar slug UK
+        varchar title
+        text description
+        varchar cover_url
+        boolean is_active
+        int sort_order
+        timestamp created_at
+    }
+```
+
+### Data Flow Sequence Diagram (Zero-Knowledge Asset Delivery)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant iOS as iOS Client
+    participant LocalDB as On-Device Encrypted Store
+    participant API as Backend REST API
+    participant DB as PostgreSQL DB
+
+    User->>iOS: Onboarding (Pick colors & font styles)
+    iOS->>LocalDB: Encrypt & save preferences locally (E2EE)
+    Note over LocalDB: Backend has ZERO knowledge of user choices
+
+    iOS->>API: GET /api/v1/wallpapers?page=1&per_page=20
+    API->>DB: Query active tagged wallpapers
+    DB-->>API: Return public wallpaper catalog + tags/colors
+    API-->>iOS: Return public catalog JSON payload
+
+    iOS->>iOS: Client-Side E2EE Matching Engine filters feed against LocalDB preferences
+    iOS-->>User: Display personalized wallpaper & widget recommendations!
+```
 
 ---
 
