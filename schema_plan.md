@@ -22,9 +22,9 @@
 ```mermaid
 graph LR
     subgraph Actors ["System Actors"]
-        U(("👤 User (iOS Client)"))
-        A(("🛡️ Admin / Content Creator"))
-        S(("📱 iOS System / Shortcuts"))
+        U(("User - iOS Client"))
+        A(("Admin - Content Creator"))
+        S(("iOS System - Shortcuts"))
     end
 
     subgraph Client_Boundary ["Client-Side (On-Device & E2EE)"]
@@ -107,6 +107,17 @@ erDiagram
         timestamp updated_at
     }
 
+    wallpaper_tags {
+        uuid wallpaper_id PK, FK
+        int tag_id PK, FK
+    }
+
+    wallpaper_colors {
+        uuid wallpaper_id PK, FK
+        int color_id PK, FK
+        smallint dominance
+    }
+
     widgets {
         uuid id PK
         varchar name
@@ -117,6 +128,11 @@ erDiagram
         int sort_order
         timestamp created_at
         timestamp updated_at
+    }
+
+    widget_tags {
+        uuid widget_id PK, FK
+        int tag_id PK, FK
     }
 
     tags {
@@ -142,6 +158,12 @@ erDiagram
         boolean is_active
         int sort_order
         timestamp created_at
+    }
+
+    collection_items {
+        uuid collection_id PK, FK
+        uuid wallpaper_id PK, FK
+        int position
     }
 ```
 
