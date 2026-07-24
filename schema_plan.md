@@ -17,6 +17,42 @@
 
 ## 1.5 System Architecture & UML Diagrams
 
+### Use Case Diagram (System Boundaries & Roles)
+
+```mermaid
+graph LR
+    subgraph Actors ["System Actors"]
+        U(("👤 User (iOS Client)"))
+        A(("🛡️ Admin / Content Creator"))
+        S(("📱 iOS System / Shortcuts"))
+    end
+
+    subgraph Client_Boundary ["Client-Side (On-Device & E2EE)"]
+        UC1["Select Onboarding Preferences\n(Colors & Fonts)"]
+        UC2["Customize Widget Layouts"]
+        UC3["Apply Wallpaper to Lock/Home Screen"]
+        UC4["Filter Feed via Local Preference Engine"]
+    end
+
+    subgraph Server_Boundary ["Server-Side (Backend API & PostgreSQL)"]
+        UC5["Fetch Public Wallpaper Catalog"]
+        UC6["Fetch Public Widget Templates"]
+        UC7["Delta Sync Asset Updates"]
+        UC8["Upload & Tag New Wallpapers"]
+        UC9["Manage Widget Templates"]
+    end
+
+    U --> UC1
+    U --> UC2
+    U --> UC4
+    UC4 --> UC5
+    UC4 --> UC6
+    UC4 --> UC7
+    UC3 --> S
+    A --> UC8
+    A --> UC9
+```
+
 ### System Architecture Overview
 
 ```mermaid
